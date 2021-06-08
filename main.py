@@ -5,9 +5,13 @@ from tqdm import tqdm
 import torch
 import numpy as np
 from torch import optim, nn
+import torchvision
 from data import mnist
 from model import MyAwesomeModel
 import os    
+import wandb
+wandb.init()
+
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 import matplotlib.pyplot as plt
 
@@ -42,18 +46,28 @@ class TrainOREvaluate(object):
         # TODO: Implement training loop here
         model = MyAwesomeModel()
         train_set, _ = mnist()
+        lr = float(vars(args)['lr'])
         optimizer = optim.Adam(model.parameters(), lr=float(vars(args)['lr']))
-        epochs = 50
+        steps = 0
+        epochs = 10
         train_losses = []
+        config = wandb.config
+        config.learning_rate = 0.003
+        config.batch_size = 64
+        wandb.watch(model)
         model.train()
         for e in range(epochs):
+
             running_loss = 0
             for images, labels in train_set:
                 
                 log_ps = model.forward(images)
                 optimizer.zero_grad()
                 loss = self.criterion(log_ps, labels)
+                
+                steps += 1
                 loss.backward()
+                wandb.log({'loss:': loss})
                 optimizer.step()
 
                 running_loss += loss.item()
